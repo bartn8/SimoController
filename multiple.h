@@ -34,7 +34,7 @@ char ReportDescriptor[100] = {
     0xa1, 0x00,                    //   COLLECTION (Physical)
     0x85, 0x02,                    //     REPORT_ID (2)
     0x05, 0x09,                    //     USAGE_PAGE (Button)
-    0x19, 0x0b,                    //     USAGE_MINIMUM (Button 11)
+    0x19, 0x0c,                    //     USAGE_MINIMUM (Button 12)
     0x29, 0x16,                    //     USAGE_MAXIMUM (Button 22)
     0x15, 0x00,                    //     LOGICAL_MINIMUM (0)
     0x25, 0x01,                    //     LOGICAL_MAXIMUM (1)
