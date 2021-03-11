@@ -29,31 +29,57 @@
 
 //https://eleccelerator.com/tutorial-about-usb-hid-report-descriptors/
 
+//100
 const PROGMEM char usbHidReportDescriptor[USB_CFG_HID_REPORT_DESCRIPTOR_LENGTH] = {
     0x05, 0x01,                    // USAGE_PAGE (Generic Desktop)
     0x09, 0x05,                    // USAGE (Game Pad)
     0xa1, 0x01,                    // COLLECTION (Application)
     0xa1, 0x00,                    //   COLLECTION (Physical)
+    0x85, 0x01,                    //     REPORT_ID (1)
     0x05, 0x09,                    //     USAGE_PAGE (Button)
     0x19, 0x01,                    //     USAGE_MINIMUM (Button 1)
-    0x29, 0x16,                    //     USAGE_MAXIMUM (Button 22)
+    0x29, 0x0b,                    //     USAGE_MAXIMUM (Button 11)
     0x15, 0x00,                    //     LOGICAL_MINIMUM (0)
     0x25, 0x01,                    //     LOGICAL_MAXIMUM (1)
-    0x95, 0x16,                    //     REPORT_COUNT (22)
+    0x95, 0x0b,                    //     REPORT_COUNT (11)
     0x75, 0x01,                    //     REPORT_SIZE (1)
-    0x81, 0x00,                    //     INPUT (Data,Ary,Abs)
-    0x75, 0x02,                    //     REPORT_SIZE (2)
+    0x81, 0x02,                    //     INPUT (Data,Var,Abs)
+    0x75, 0x05,                    //     REPORT_SIZE (5)
     0x95, 0x01,                    //     REPORT_COUNT (1)
-    0x81, 0x01,                    //     INPUT (Cnst,Ary,Abs)
+    0x81, 0x03,                    //     INPUT (Cnst,Var,Abs)
     0x05, 0x01,                    //     USAGE_PAGE (Generic Desktop)
     0x09, 0x30,                    //     USAGE (X)
     0x09, 0x31,                    //     USAGE (Y)
+    0x15, 0x81,                    //     LOGICAL_MINIMUM (-127)
+    0x25, 0x7f,                    //     LOGICAL_MAXIMUM (127)
+    0x75, 0x08,                    //     REPORT_SIZE (8)
+    0x95, 0x02,                    //     REPORT_COUNT (2)
+    0x81, 0x02,                    //     INPUT (Data,Var,Abs)
+    0xc0,                          //   END_COLLECTION
+    0xc0,                          // END_COLLECTION
+    0x05, 0x01,                    // USAGE_PAGE (Generic Desktop)
+    0x09, 0x05,                    // USAGE (Game Pad)
+    0xa1, 0x01,                    // COLLECTION (Application)
+    0xa1, 0x00,                    //   COLLECTION (Physical)
+    0x85, 0x02,                    //     REPORT_ID (2)
+    0x05, 0x09,                    //     USAGE_PAGE (Button)
+    0x19, 0x0c,                    //     USAGE_MINIMUM (Button 12)
+    0x29, 0x16,                    //     USAGE_MAXIMUM (Button 22)
+    0x15, 0x00,                    //     LOGICAL_MINIMUM (0)
+    0x25, 0x01,                    //     LOGICAL_MAXIMUM (1)
+    0x95, 0x0b,                    //     REPORT_COUNT (11)
+    0x75, 0x01,                    //     REPORT_SIZE (1)
+    0x81, 0x02,                    //     INPUT (Data,Var,Abs)
+    0x75, 0x05,                    //     REPORT_SIZE (5)
+    0x95, 0x01,                    //     REPORT_COUNT (1)
+    0x81, 0x03,                    //     INPUT (Cnst,Var,Abs)
+    0x05, 0x01,                    //     USAGE_PAGE (Generic Desktop)
     0x09, 0x32,                    //     USAGE (Z)
     0x09, 0x33,                    //     USAGE (Rx)
     0x15, 0x81,                    //     LOGICAL_MINIMUM (-127)
     0x25, 0x7f,                    //     LOGICAL_MAXIMUM (127)
     0x75, 0x08,                    //     REPORT_SIZE (8)
-    0x95, 0x04,                    //     REPORT_COUNT (4)
+    0x95, 0x02,                    //     REPORT_COUNT (2)
     0x81, 0x02,                    //     INPUT (Data,Var,Abs)
     0xc0,                          //   END_COLLECTION
     0xc0                           // END_COLLECTION
@@ -61,11 +87,10 @@ const PROGMEM char usbHidReportDescriptor[USB_CFG_HID_REPORT_DESCRIPTOR_LENGTH] 
 
 typedef struct
 {
-	uint8_t buttons[3];
-	int8_t xLeft;
-	int8_t yLeft;
-	int8_t xRight;
-	int8_t yRight;
+	uint8_t reportID;
+	uint16_t buttons;
+	int8_t x;
+	int8_t y;
 } gamepad_report_t;
 
 static uint8_t* joyreader_report;
@@ -73,114 +98,118 @@ static uint8_t* joyreader_report;
 static uint8_t idle_rate = 500 / 4; // see HID1_11.pdf sect 7.2.4
 static uint8_t protocol_version = 0; // see HID1_11.pdf sect 7.2.6
 
-static gamepad_report_t gamepad_report;
+static gamepad_report_t gamepad_report_1;
+static gamepad_report_t gamepad_report_2;
 
 /************************************************************************/
 /* Build a USB Report with two XY Axis and 22 buttons.                  */
 /************************************************************************/
-static void buildReport(){
+static void buildReport(void){
 	//Axis reading from report.
 	
 	if(joyreader_report[JOYREADER_P_MATRIX_17] == JOYREADER_BTN_DOWN)
-		gamepad_report.yLeft = 127;
+		gamepad_report_1.y = 127;
 	else if(joyreader_report[JOYREADER_P_MATRIX_18] == JOYREADER_BTN_DOWN)
-		gamepad_report.yLeft = -127;
+		gamepad_report_1.y = -127;
 	else
-		gamepad_report.yLeft = 0;
+		gamepad_report_1.y = 0;
 	
 	if(joyreader_report[JOYREADER_P_MATRIX_19] == JOYREADER_BTN_DOWN)
-		gamepad_report.xLeft = 127;
+		gamepad_report_1.x = 127;
 	else if(joyreader_report[JOYREADER_P_MATRIX_20] == JOYREADER_BTN_DOWN)
-		gamepad_report.xLeft = -127;
+		gamepad_report_1.x = -127;
 	else
-		gamepad_report.xLeft = 0;
+		gamepad_report_1.x = 0;
 	
 	if(joyreader_report[JOYREADER_P_MATRIX_21] == JOYREADER_BTN_DOWN)
-		gamepad_report.yRight = 127;
+		gamepad_report_2.y = 127;
 	else if(joyreader_report[JOYREADER_P_MATRIX_22] == JOYREADER_BTN_DOWN)
-		gamepad_report.yRight = -127;
+		gamepad_report_2.y = -127;
 	else
-		gamepad_report.yRight = 0;
+		gamepad_report_2.y = 0;
 	
 	if(joyreader_report[JOYREADER_P_MATRIX_23] == JOYREADER_BTN_DOWN)
-		gamepad_report.xRight = 127;
+		gamepad_report_2.x = 127;
 	else if(joyreader_report[JOYREADER_P_MATRIX_24] == JOYREADER_BTN_DOWN)
-		gamepad_report.xRight = -127;
+		gamepad_report_2.x = -127;
 	else
-		gamepad_report.xRight = 0;
+		gamepad_report_2.x = 0;
+	
+	//Report ID setter
+	gamepad_report_1.reportID = 1;
+	gamepad_report_2.reportID = 2;
 	
 	//Button state reset.
-	gamepad_report.buttons[0] = 0x00;
-	gamepad_report.buttons[1] = 0x00;
-	gamepad_report.buttons[2] = 0x00;
+	gamepad_report_1.buttons = 0x0000;
+	gamepad_report_2.buttons = 0x0000;
 	
 	//Buttons reading from report.
 	
 	if(joyreader_report[JOYREADER_P_DIGITAL_0] == JOYREADER_BTN_DOWN)
-		gamepad_report.buttons[0] |= 1;
+		gamepad_report_1.buttons |= (uint16_t)1;
 	
 	if(joyreader_report[JOYREADER_P_DIGITAL_1] == JOYREADER_BTN_DOWN)
-		gamepad_report.buttons[0] |= 1 << 1;
-	
-	if(joyreader_report[JOYREADER_P_DIGITAL_2] == JOYREADER_BTN_DOWN)
-		gamepad_report.buttons[0] |= 1 << 2;
-	
-	if(joyreader_report[JOYREADER_P_DIGITAL_3] == JOYREADER_BTN_DOWN)
-		gamepad_report.buttons[0] |= 1 << 3;
-		
-	if(joyreader_report[JOYREADER_P_DIGITAL_4] == JOYREADER_BTN_DOWN)
-		gamepad_report.buttons[0] |= 1 << 4;
+		gamepad_report_1.buttons |= (uint16_t)1 << 1;
 		
 	if(joyreader_report[JOYREADER_P_MATRIX_0] == JOYREADER_BTN_DOWN)
-		gamepad_report.buttons[0] |= 1 << 5;
+		gamepad_report_1.buttons |= (uint16_t)1 << 2;
 		
 	if(joyreader_report[JOYREADER_P_MATRIX_1] == JOYREADER_BTN_DOWN)
-		gamepad_report.buttons[0] |= 1 << 6;
+		gamepad_report_1.buttons |= (uint16_t)1 << 3;
 	
 	if(joyreader_report[JOYREADER_P_MATRIX_2] == JOYREADER_BTN_DOWN)
-		gamepad_report.buttons[0] |= 1 << 7;
+		gamepad_report_1.buttons |= (uint16_t)1 << 4;
 		
 	if(joyreader_report[JOYREADER_P_MATRIX_3] == JOYREADER_BTN_DOWN)
-		gamepad_report.buttons[1] |= 1;
+		gamepad_report_1.buttons |= (uint16_t)1 << 5;
 	
 	if(joyreader_report[JOYREADER_P_MATRIX_4] == JOYREADER_BTN_DOWN)
-		gamepad_report.buttons[1] |= 1 << 1;
+		gamepad_report_1.buttons |= (uint16_t)1 << 6;
 	
 	if(joyreader_report[JOYREADER_P_MATRIX_5] == JOYREADER_BTN_DOWN)
-		gamepad_report.buttons[1] |= 1 << 2;
+		gamepad_report_1.buttons |= (uint16_t)1 << 7;
 	
 	if(joyreader_report[JOYREADER_P_MATRIX_6] == JOYREADER_BTN_DOWN)
-		gamepad_report.buttons[1] |= 1 << 3;
+		gamepad_report_1.buttons |= (uint16_t)1 << 8;
 		
 	if(joyreader_report[JOYREADER_P_MATRIX_7] == JOYREADER_BTN_DOWN)
-		gamepad_report.buttons[1] |= 1 << 4;
+		gamepad_report_1.buttons |= (uint16_t)1 << 9;
 		
 	if(joyreader_report[JOYREADER_P_MATRIX_8] == JOYREADER_BTN_DOWN)
-		gamepad_report.buttons[1] |= 1 << 5;
+		gamepad_report_1.buttons |= (uint16_t)1 << 10;
+	
+	if(joyreader_report[JOYREADER_P_DIGITAL_2] == JOYREADER_BTN_DOWN)
+		gamepad_report_2.buttons |= (uint16_t)1;
+	
+	if(joyreader_report[JOYREADER_P_DIGITAL_3] == JOYREADER_BTN_DOWN)
+		gamepad_report_2.buttons |= (uint16_t)1 << 1;
 		
+	if(joyreader_report[JOYREADER_P_DIGITAL_4] == JOYREADER_BTN_DOWN)
+		gamepad_report_2.buttons |= (uint16_t)1 << 2;
+			
 	if(joyreader_report[JOYREADER_P_MATRIX_9] == JOYREADER_BTN_DOWN)
-		gamepad_report.buttons[1] |= 1 << 6;
+		gamepad_report_2.buttons |= (uint16_t)1 << 3;
 	
 	if(joyreader_report[JOYREADER_P_MATRIX_10] == JOYREADER_BTN_DOWN)
-		gamepad_report.buttons[1] |= 1 << 7;
+		gamepad_report_2.buttons |= (uint16_t)1 << 4;
 		
 	if(joyreader_report[JOYREADER_P_MATRIX_11] == JOYREADER_BTN_DOWN)
-		gamepad_report.buttons[2] |= 1;
+		gamepad_report_2.buttons |= (uint16_t)1 << 5;
 	
 	if(joyreader_report[JOYREADER_P_MATRIX_12] == JOYREADER_BTN_DOWN)
-		gamepad_report.buttons[2] |= 1 << 1;
+		gamepad_report_2.buttons |= (uint16_t)1 << 6;
 	
 	if(joyreader_report[JOYREADER_P_MATRIX_13] == JOYREADER_BTN_DOWN)
-		gamepad_report.buttons[2] |= 1 << 2;
+		gamepad_report_2.buttons |= (uint16_t)1 << 7;
 	
 	if(joyreader_report[JOYREADER_P_MATRIX_14] == JOYREADER_BTN_DOWN)
-		gamepad_report.buttons[2] |= 1 << 3;
+		gamepad_report_2.buttons |= (uint16_t)1 << 8;
 		
 	if(joyreader_report[JOYREADER_P_MATRIX_15] == JOYREADER_BTN_DOWN)
-		gamepad_report.buttons[2] |= 1 << 4;
+		gamepad_report_2.buttons |= (uint16_t)1 << 9;
 		
 	if(joyreader_report[JOYREADER_P_MATRIX_16] == JOYREADER_BTN_DOWN)
-		gamepad_report.buttons[2] |= 1 << 5;
+		gamepad_report_2.buttons |= (uint16_t)1 << 10;
 	
 }
 
@@ -208,8 +237,23 @@ usbMsgLen_t usbFunctionSetup(uint8_t data[8])
 		protocol_version = rq->wValue.bytes[1];
 		return 0; // send nothing
 		case USBRQ_HID_GET_REPORT:
-		usbMsgPtr = (usbMsgPtr_t)&gamepad_report;
-		return sizeof(gamepad_report_t);
+		
+			// check for report ID then send back report
+			if (rq->wValue.bytes[0] == 1)
+			{
+				usbMsgPtr = (usbMsgPtr_t)&gamepad_report_1;
+				return sizeof(gamepad_report_t);
+			}
+			else if (rq->wValue.bytes[0] == 2)
+			{
+				usbMsgPtr = (usbMsgPtr_t)&gamepad_report_2;
+				return sizeof(gamepad_report_t);
+			}
+			else
+			{
+				return 0; // no such report, send nothing
+			}
+		
 		case USBRQ_HID_SET_REPORT: // no "output" or "feature" implemented, so ignore
 		return 0; // send nothing
 		default: // do not understand data, ignore
@@ -218,7 +262,25 @@ usbMsgLen_t usbFunctionSetup(uint8_t data[8])
 }
 
 
-int main() {	
+// this function is used to guarantee that the data is sent to the computer once
+void usbSendHidReport(uchar * data, uchar len)
+{
+	while(1)
+	{
+		if (usbInterruptIsReady())
+		{
+			//Watchdog reset is placed here to prevent idle state from USB interrput.
+			wdt_reset();
+			
+			usbSetInterrupt(data, len);
+			break;
+		}
+		
+		usbPoll();
+	}
+}
+
+int main(void) {	
 	//joyreader_resetIO();
 	
 	//LED: Used only as ON state LED. If watchdog is trigged, the LED will shutdown for a while.
@@ -238,7 +300,7 @@ int main() {
 		 
  	buildReport();
 		
-	wdt_enable(WDTO_1S); // enable 1s watchdog timer
+	wdt_enable(WDTO_4S); // enable 1s watchdog timer
 
 	usbInit();
 	usbDeviceDisconnect(); // enforce re-enumeration
@@ -270,7 +332,7 @@ int main() {
 		{// using idle rate
 			 to_send = 1;
 		}
-						
+		
 		if (usbInterruptIsReady())
 		{
 			//Watchdog reset is placed here to prevent idle state from USB interrput.
@@ -278,17 +340,17 @@ int main() {
 			
 			if(to_send != 0){
 				// send the data if needed
-				
-				usbSetInterrupt((uchar *)&gamepad_report,  sizeof(gamepad_report_t));
-				
+			
+				usbSendHidReport((uchar *)&gamepad_report_1,  sizeof(gamepad_report_t));
+				usbSendHidReport((uchar *)&gamepad_report_2,  sizeof(gamepad_report_t));
+			
 				TCNT1 = 0; // reset timer
 			}
 		}
-		
+					
 		//Reset flag
 		to_send = 0;
 	}
 	
 	return 0;
 }
-

@@ -37,7 +37,7 @@ Anti-bouncing threshold:
   Button change state when the counter is bigger than the threshold.
 */
 
-#define JOYREADER_COUNTER_THRESHOLD 32
+#define JOYREADER_COUNTER_THRESHOLD 16
 
 //README: Digital buttons must be the first one in the definitions to use those macros.
 
@@ -126,22 +126,22 @@ typedef matrix_button matrix_buttons[JOYREADER_MATRIX_BUTTONS];
 /************************************************************************/
 /* Function used to reset I/O Registers                                 */
 /************************************************************************/
-void joyreader_resetIO();
+void joyreader_resetIO(void);
 
 /************************************************************************/
 /* Function used to initialize I/O Registers and button states          */
 /************************************************************************/
-void joyreader_initButtons();
+void joyreader_initButtons(void);
 
 /************************************************************************/
 /* Function used to get a report of the current state of buttons        */
 /************************************************************************/
-uint8_t* joyreader_getReport();
+uint8_t* joyreader_getReport(void);
 
 /************************************************************************/
 /* Function used to read button states                                  */
 /************************************************************************/
-uint8_t joyreader_updateButtons();
+uint8_t joyreader_updateButtons(void);
 
 #ifdef __cplusplus
 }
